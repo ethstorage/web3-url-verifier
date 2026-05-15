@@ -1,0 +1,21 @@
+{
+  "name": "colibri-stateless-",
+  "version": "1.0.0",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "start": "ts-node src/index.ts",
+    "deep": "ts-node src/deep.ts"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "description": "",
+  "dependencies": {
+    "@corpus-core/colibri-stateless": "^1.1.24",
+    "@types/node": "^25.7.0",
+    "ethers": "^6.16.0",
+    "ts-node": "^10.9.2",
+    "typescript": "^6.0.3"
+  }
+}
