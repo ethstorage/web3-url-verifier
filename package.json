@@ -15,7 +15,9 @@
     "@corpus-core/colibri-stateless": "^1.1.24",
     "@types/node": "^25.7.0",
     "ethers": "^6.16.0",
+    "js-kzg": "^2.0.2",
     "ts-node": "^10.9.2",
-    "typescript": "^6.0.3"
+    "typescript": "^6.0.3",
+    "web3protocol": "^0.6.3"
   }
 }
