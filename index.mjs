@@ -2,23 +2,26 @@ import config from './config.mjs';
 import { Web3URLVerifier } from './src/web3url_verifier.mjs';
 
 async function main() {
-  const enabledCases = config.TEST_CASES?.filter(c => c.enabled !== false) || [];
+  for (const testCase of config.TEST_CASES) {
+    const chainId = testCase.chainId || 1;
+    const netConfig = config.NETWORKS[chainId];
 
-  const verifier = new Web3URLVerifier();
-  for (const testCase of enabledCases) {
-    console.log(`\n\n🔷 测试用例: ${testCase.name}`);
+    if (!netConfig) {
+      console.error(`未知链配置: ${chainId}，跳过 ${testCase.name}`);
+      continue;
+    }
+
+    const verifier = new Web3URLVerifier(chainId, netConfig);
+    console.log(`\n🔷 ${testCase.name} (eth_chain=${chainId})`);
+    console.log(`   URL: ${testCase.web3Url}`);
+
     try {
-      await verifier.verifyUrl(testCase.web3Url, { maxDepth: 2, testCase });
+      await verifier.verify(testCase.web3Url, testCase);
     } catch (err) {
-      console.error(`\n💥 测试失败: ${err.message}`);
+      console.error(`💥 ${testCase.name} 失败: ${err.message}`);
     }
   }
-  console.log('\n\n🎉 所有测试完成');
-  process.exit(0);
+  console.log('\n🎉 完成');
 }
 
-main().catch(err => {
-  console.error(`\n💥 致命错误: ${err.message}`);
-  console.error(err.stack);
-  process.exit(1);
-});
+main().catch(err => { console.error(err); process.exit(1); });
