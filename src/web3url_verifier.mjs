@@ -20,6 +20,8 @@ function createSemaphore(limit) {
 
 function elapsed(start) { return ((Date.now() - start) / 1000).toFixed(1); }
 
+async function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
+
 export class Web3URLVerifier {
   constructor(ethChainId, netConfig) {
     this.ethChainId = ethChainId;
@@ -29,6 +31,7 @@ export class Web3URLVerifier {
       prover: [netConfig.colibriProver],
       include_code: true,
     });
+    this.esProvider = new ethers.JsonRpcProvider(netConfig.esRpc); // ES RPC provider
   }
 
   async initKzg() {
@@ -86,6 +89,23 @@ export class Web3URLVerifier {
     process.stderr.write(`\r   验证: ${vDone}/${total} (${elapsed(startV)}s)    \n`);
 
     this._printReport(testCase.name, contract, results, Date.now() - startDl - tVerify, tVerify);
+
+    // Step 3: 对失败的根目录文件进行对比分析（额外分析，不计入总耗时）
+    const failedRoot = results.filter(r => !r.match && (r.path === '/' || r.path === '/index.html'));
+    if (failedRoot.length > 0) {
+      console.log(`📊 分析失败根目录文件...`);
+      for (const fail of failedRoot) {
+        const gatewayContent = fetched.get(fail.path);
+        if (!gatewayContent) continue;
+        // 直接调用合约获取整个文件内容（利用 fallback 机制）
+        const contractContent = await this._fetchFileDirectly(contract, fail.path);
+        if (contractContent && contractContent.length > 0) {
+          this._diffContent(gatewayContent, contractContent);
+        } else {
+          console.log('    ❌ 无法从合约获取文件内容');
+        }
+      }
+    }
     return results;
   }
 
@@ -184,11 +204,10 @@ export class Web3URLVerifier {
       try { contractHashes = ethers.AbiCoder.defaultAbiCoder().decode(['bytes32[]'], batchRs.result)[0]; } catch (_) {}
     }
 
-    // 剥离 Gateway 注入的 web3url 转换脚本（w3link.io 在 HTML <body> 后注入）
-    const cleanContent = this._stripGatewayInjection(content, relPath);
-
+    // 清理 Gateway 注入的脚本后再计算 hash
+    const cleanedContent = this._stripGatewayInjection(content, relPath);
     let localHashes;
-    try { localHashes = (await computeEthStorageHashes(cleanContent)).hashes; }
+    try { localHashes = (await computeEthStorageHashes(cleanedContent)).hashes; }
     catch (err) { return { match: false, detail: `KZG错误: ${err.message.slice(0, 60)}` }; }
 
     for (let i = 0; i < localHashes.length; i++) {
@@ -198,38 +217,136 @@ export class Web3URLVerifier {
     return { match: true, detail: 'OK' };
   }
 
-  // Gateway 在 HTML <body> 标签后注入 web3url 转换脚本，剥离后计算 hash 才准确
+  async _proverCall(contract, calldata, maxRetries = 3) {
+    const _w = console.warn;
+    console.warn = () => {};
+    try {
+      for (let retry = 0; retry < maxRetries; retry++) {
+        try {
+          const r = await this.colibriClient.request({
+            method: 'eth_call',
+            params: [{ to: contract, data: calldata }, 'latest'],
+          });
+          return { result: r };
+        } catch (err) {
+          const errorMsg = err.message?.slice(0, 120);
+          // 如果是内存访问错误或网络错误，重试
+          if (retry < maxRetries - 1 && 
+              (errorMsg.includes('memory access') || 
+               errorMsg.includes('timeout') || 
+               errorMsg.includes('network') ||
+               errorMsg.includes('connection'))) {
+            await sleep(200 * Math.pow(2, retry));  // 指数退避: 200ms, 400ms, 800ms
+            continue;
+          }
+          return { result: null, error: errorMsg };
+        }
+      }
+      
+      return { result: null, error: 'max retries exceeded' };
+    } finally { 
+      console.warn = _w; 
+    }
+  }
+
+  // 直接调用合约获取文件内容（利用 fallback 机制）
+  async _fetchFileDirectly(contract, fileName) {
+    try {
+      // 先尝试直接使用文件名作为 calldata
+      const calldata = ethers.hexlify(ethers.toUtf8Bytes(fileName));
+      const result = await this.esProvider.send('eth_call', [{ to: contract, data: calldata }, 'latest']);
+      if (result === '0x' || result.length <= 2) {
+        console.log('    ❌ 合约返回空内容');
+        return null;
+      }
+
+      // 解析返回的文件内容
+      const cleanHex = result.startsWith('0x') ? result.slice(2) : result;
+      const fullBuffer = Buffer.from(cleanHex, 'hex');
+      // 返回 Buffer，去掉前 64 字节（返回值前缀）
+      if (fullBuffer.length > 64) {
+        return fullBuffer.subarray(64);
+      }
+      return fullBuffer;
+    } catch (err) {
+      console.log(`    ❌ 从合约获取失败: ${err.message.slice(0, 80)}`);
+      return null;
+    }
+  }
+
+  // 剥离 Gateway 注入的 web3url 转换脚本
   _stripGatewayInjection(content, relPath) {
     const isHtml = relPath.endsWith('/') || relPath.endsWith('.html') || relPath === '/';
     if (!isHtml) return content;
 
     const str = content.toString('utf-8');
-    const marker = 'Patch by web3url-gateway';
-    const markerIdx = str.indexOf(marker);
-    if (markerIdx === -1) return content;
 
-    const scriptStart = str.lastIndexOf('<script', markerIdx);
-    if (scriptStart === -1) return content;
+    // 使用正则表达式查找 </head> 和 <body> 之间可能有空白字符的情况
+    const headBodyMatch = str.match(/<\/head>\s*<body>/i);
+    if (!headBodyMatch) return content;
 
-    const scriptEnd = str.indexOf('</script>', markerIdx);
-    if (scriptEnd === -1) return content;
+    const headBodyMarker = headBodyMatch[0];
+    const afterHeadBodyIdx = str.indexOf(headBodyMarker) + headBodyMarker.length;
 
-    const stripped = str.slice(0, scriptStart) + str.slice(scriptEnd + '</script>'.length);
-    return Buffer.from(stripped, 'utf-8');
+    // 查找 body 开始后第一个 script 标签（非自闭合）
+    const scriptRegex = /<script([^>]*)>(.*?)<\/script>/is;
+    scriptRegex.lastIndex = afterHeadBodyIdx;
+    const scriptMatch = scriptRegex.exec(str);
+
+    if (scriptMatch) {
+      const fullScriptTag = scriptMatch[0];
+      const scriptContent = scriptMatch[2];
+      
+      // 检查这个 script 是否是 Gateway 注入的
+      if (scriptContent.includes('web3url') ||
+          scriptContent.includes('Patch by web3url-gateway')) {
+        // 移除这个注入的脚本
+        const stripped = str.slice(0, afterHeadBodyIdx) + str.slice(afterHeadBodyIdx + fullScriptTag.length);
+        return Buffer.from(stripped, 'utf-8');
+      }
+    }
+
+    return content;
   }
 
-  async _proverCall(contract, calldata) {
-    const _w = console.warn;
-    console.warn = () => {};
-    try {
-      const r = await this.colibriClient.request({
-        method: 'eth_call',
-        params: [{ to: contract, data: calldata }, 'latest'],
-      });
-      return { result: r };
-    } catch (err) {
-      return { result: null, error: err.message?.slice(0, 120) };
-    } finally { console.warn = _w; }
+  // 对比两个内容，找出差异
+  _diffContent(gatewayContent, contractContent) {
+    const gatewayStr = gatewayContent.toString('utf-8');
+    const contractStr = contractContent.toString('utf-8');
+    
+    // 找第一个差异位置
+    const minLen = Math.min(gatewayStr.length, contractStr.length);
+    let startIdx = -1;
+    for (let i = 0; i < minLen; i++) {
+      if (gatewayStr[i] !== contractStr[i]) {
+        startIdx = i;
+        break;
+      }
+    }
+
+    let gateEnd = gatewayStr.length - 1;
+    let contEnd = contractStr.length - 1;
+    while (gateEnd >= startIdx && contEnd >= startIdx) {
+      if (gatewayStr[gateEnd] !== contractStr[contEnd]) {
+        break;
+      }
+      gateEnd--;
+      contEnd--;
+    }
+
+    const rawInjection = gatewayStr.slice(startIdx, gateEnd + 1);
+    // 4. 压缩：去掉换行符、回车符，并将连续的多个空格合并为一个空格
+    const compressedInjection = rawInjection.replace(/[\r\n]+/g, ' ').replace(/\s+/g, ' ').trim();
+    // 5. 精简打印：只保留开头 20 字和结尾 20 字
+    const showLen = 40;
+    console.log(`  📍 检测到 Gateway 注入内容 (原始总长: ${rawInjection.length} 字节):`);
+    if (compressedInjection.length <= showLen * 2) {
+      console.log(`  注入内容: ${compressedInjection}`);
+    } else {
+      const head = compressedInjection.slice(0, showLen);
+      const tail = compressedInjection.slice(-showLen);
+      console.log(`  注入内容: ${head} ... ${tail}`);
+    }
   }
 
   _printReport(name, contract, results, tDownload, tVerify) {
