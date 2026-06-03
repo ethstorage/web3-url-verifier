@@ -6,16 +6,15 @@ const MaxBlobDataSize = (4 * 31 + 3) * 1024 - 4; // 130044
 const EncodingVersion = 0;
 const Rounds = 1024;
 
-let _kzg = null;
+let _kzg: Awaited<ReturnType<typeof KZG.create>> | null = null;
 
 export async function getKzg() {
   if (_kzg) return _kzg;
-
   _kzg = await KZG.create();
   return _kzg;
 }
 
-function copy(des, desOff, src, srcOff) {
+function copy(des: Uint8Array, desOff: number, src: Uint8Array, srcOff: number) {
   const srcLen = src.length - srcOff;
   const desLen = des.length - desOff;
   const len = Math.min(srcLen, desLen);
@@ -23,21 +22,17 @@ function copy(des, desOff, src, srcOff) {
   return len;
 }
 
-function encodeOpBlob(data) {
+function encodeOpBlob(data: Uint8Array): Uint8Array {
   if (data.length > MaxBlobDataSize) {
     throw new Error(`too much data to encode in one blob, len=${data.length}`);
   }
   const b = new Uint8Array(BLOB_SIZE);
   let readOffset = 0;
 
-  const read1 = () => {
-    if (readOffset >= data.length) return 0;
-    return data[readOffset++];
-  };
+  const read1 = () => (readOffset >= data.length ? 0 : data[readOffset++]);
 
   let writeOffset = 0;
   const buf31 = new Uint8Array(31);
-  const zero31 = new Uint8Array(31);
 
   const read31 = () => {
     if (readOffset >= data.length) {
@@ -49,14 +44,8 @@ function encodeOpBlob(data) {
     readOffset += n;
   };
 
-  const write1 = (v) => {
-    b[writeOffset++] = v;
-  };
-
-  const write31 = () => {
-    copy(b, writeOffset, buf31, 0);
-    writeOffset += 31;
-  };
+  const write1 = (v: number) => { b[writeOffset++] = v; };
+  const write31 = () => { copy(b, writeOffset, buf31, 0); writeOffset += 31; };
 
   for (let round = 0; round < Rounds && readOffset < data.length; round++) {
     if (round === 0) {
@@ -95,9 +84,9 @@ function encodeOpBlob(data) {
   return b;
 }
 
-function encodeOpBlobs(data) {
+function encodeOpBlobs(data: Uint8Array): Uint8Array[] {
   if (data.length === 0) throw new Error('invalid blob data');
-  const blobs = [];
+  const blobs: Uint8Array[] = [];
   for (let i = 0; i < data.length; i += MaxBlobDataSize) {
     const end = Math.min(i + MaxBlobDataSize, data.length);
     blobs.push(encodeOpBlob(data.subarray(i, end)));
@@ -105,7 +94,7 @@ function encodeOpBlobs(data) {
   return blobs;
 }
 
-function convertToEthStorageHash(commitment) {
+function convertToEthStorageHash(commitment: Uint8Array): string {
   const versionedHash = new Uint8Array(32);
   versionedHash[0] = 0x01;
   const sha = ethers.getBytes(ethers.sha256(commitment));
@@ -115,13 +104,13 @@ function convertToEthStorageHash(commitment) {
   return ethers.hexlify(hash);
 }
 
-export async function computeEthStorageHashes(fileData) {
+export async function computeEthStorageHashes(fileData: Uint8Array) {
   const kzg = await getKzg();
   const blobs = encodeOpBlobs(fileData);
-  const hashes = [];
+  const hashes: string[] = [];
   for (const blob of blobs) {
     const commitment = await kzg.computeCommitment(blob);
-    hashes.push(convertToEthStorageHash(commitment));
+    hashes.push(convertToEthStorageHash(commitment as any));
   }
   return { hashes, chunkCount: blobs.length };
 }

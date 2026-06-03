@@ -1,4 +1,25 @@
-export default {
+export interface NetworkConfig {
+  elRpc: string;
+  esRpc: string;
+  colibriProver: string;
+}
+
+export interface TestCase {
+  name: string;
+  web3Url: string;
+  chainId: number;
+  /** 'manual' = FlatDirectory/EthStorage, 'auto' = contract method call */
+  resolveMode: 'manual' | 'auto';
+  /** manual 模式：网关将 / 作为 rootFile 提供 */
+  rootFile?: string;
+}
+
+export interface Config {
+  NETWORKS: Record<number, NetworkConfig>;
+  TEST_CASES: TestCase[];
+}
+
+const config: Config = {
   NETWORKS: {
     1: {
       elRpc: 'http://88.99.30.186:8545',
@@ -12,12 +33,6 @@ export default {
     },
   },
   TEST_CASES: [
-    {
-      name: 'render-example',
-      web3Url: 'web3://0x79a7aa92314fda49262649c6aef543fb0a652243:1/render/78/0',
-      chainId: 1,
-      resolveMode: 'auto',
-    },
     {
       name: 'Mainnet EthStorage',
       web3Url: 'web3://0x1e9796FA683cBDaA29B5fD5267FebED6D4b9124b:333/',
@@ -38,6 +53,14 @@ export default {
       chainId: 11155111,
       resolveMode: 'manual',
       rootFile: 'index.html',
-    }
-  ]
+    },
+    {
+      name: 'render-example',
+      web3Url: 'web3://0x79a7aa92314fda49262649c6aef543fb0a652243:1/render/78/0',
+      chainId: 1,
+      resolveMode: 'auto',
+    },
+  ],
 };
+
+export default config;
