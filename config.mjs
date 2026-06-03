@@ -13,21 +13,30 @@ export default {
   },
   TEST_CASES: [
     {
+      name: 'render-example',
+      web3Url: 'web3://0x79a7aa92314fda49262649c6aef543fb0a652243:1/render/78/0',
+      chainId: 1,
+      resolveMode: 'auto',
+    },
+    {
       name: 'Mainnet EthStorage',
       web3Url: 'web3://0x1e9796FA683cBDaA29B5fD5267FebED6D4b9124b:333/',
       chainId: 1,
+      resolveMode: 'manual',
       rootFile: 'index.html',
     },
     {
       name: 'safe',
       web3Url: 'web3://0x90A5629c3D7EbC48Be3012210a1b1c229432884a:3333/',
       chainId: 11155111,
+      resolveMode: 'manual',
       rootFile: 'index.html',
     },
     {
       name: 'vblog',
       web3Url: 'web3://0xc96dfda0171acdd1f176c7856fce01be690ea100:3333/',
       chainId: 11155111,
+      resolveMode: 'manual',
       rootFile: 'index.html',
     }
   ]

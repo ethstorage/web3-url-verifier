@@ -4,8 +4,7 @@
   "main": "index.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    "start": "ts-node src/index.ts",
-    "deep": "ts-node src/deep.ts"
+    "start": "ts-node index.ts"
   },
   "keywords": [],
   "author": "",
@@ -17,7 +16,6 @@
     "ethers": "^6.16.0",
     "js-kzg": "^2.0.2",
     "ts-node": "^10.9.2",
-    "typescript": "^6.0.3",
-    "web3protocol": "^0.6.3"
+    "typescript": "^6.0.3"
   }
 }
