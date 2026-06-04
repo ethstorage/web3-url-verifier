@@ -55,7 +55,21 @@ const config: Config = {
       rootFile: 'index.html',
     },
     {
-      name: 'render-example',
+      name: 'vblog - backpack',
+      web3Url: 'web3://0xc96dfda0171acdd1f176c7856fce01be690ea100:3333/general/2022/06/20/backpack.html',
+      chainId: 11155111,
+      resolveMode: 'manual',
+      rootFile: 'index.html',
+    },
+    {
+      name: 'vblog - blobs',
+      web3Url: 'web3://0xc96dfda0171acdd1f176c7856fce01be690ea100:3333/general/2024/03/28/blobs.html',
+      chainId: 11155111,
+      resolveMode: 'manual',
+      rootFile: 'index.html',
+    },
+    {
+      name: 'NFT render',
       web3Url: 'web3://0x79a7aa92314fda49262649c6aef543fb0a652243:1/render/78/0',
       chainId: 1,
       resolveMode: 'auto',

@@ -96,7 +96,7 @@ export class Web3URLVerifier {
     const fetched = new Map<string, Buffer>();
     const dlSem = createSemaphore(16);
 
-    const startPath = testCase.resolveMode === 'auto' ? urlPath : '/';
+    const startPath = urlPath;
     await this._crawl(base + startPath, startPath, base, fetched, dlSem, (n, total) => {
       if (n % 20 === 0 || n === total)
         process.stderr.write(`\r   发现+下载: ${n}/${total} (${elapsed(startDl)}s)    `);
