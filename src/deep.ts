@@ -1,7 +1,8 @@
 /**
- * Colibri 深度原理验证
+ * Colibri Deep Principle Verification
  *
- * 通过 fetch 拦截 + 投毒 + 模式对比，验证 Colibri 的密码学安全保障
+ * Validates Colibri's cryptographic security guarantees through
+ * fetch interception + data poisoning + mode comparison
  */
 import { ethers } from 'ethers';
 import Colibri, { Strategy } from '@corpus-core/colibri-stateless';
@@ -15,29 +16,29 @@ const sep = (title: string) => console.log('\n' + '='.repeat(25) + ` ${title} ` 
 const originalFetch = globalThis.fetch;
 
 // ============================================================
-// 实验 1: eth_getProof 是标准 EIP-1186 接口
+// Experiment 1: eth_getProof is a standard EIP-1186 interface
 // ============================================================
 async function exp1_isStandardRPC() {
-  sep('实验 1: eth_getProof 是标准 EIP-1186 接口');
+  sep('Exp 1: eth_getProof is a standard EIP-1186 interface');
 
   const rpc = new ethers.JsonRpcProvider(SELF_RPC);
   const proof = await rpc.send('eth_getProof', [ADDR, [], 'latest']);
 
-  console.log('直接调 RPC eth_getProof 返回:');
+  console.log('Direct RPC eth_getProof result:');
   console.log(`  address:      ${proof.address}`);
   console.log(`  balance:      ${proof.balance}`);
   console.log(`  nonce:        ${proof.nonce}`);
   console.log(`  codeHash:     ${proof.codeHash}`);
   console.log(`  storageHash:  ${proof.storageHash}`);
-  console.log(`  accountProof: ${proof.accountProof.length} 个节点`);
-  console.log(`  storageProof: ${proof.storageProof.length} 个槽`);
+  console.log(`  accountProof: ${proof.accountProof.length} nodes`);
+  console.log(`  storageProof: ${proof.storageProof.length} slots`);
 }
 
 // ============================================================
-// 实验 2: Colibri 内部请求拦截（fetch 猴子补丁）
+// Experiment 2: Colibri internal request interception (fetch monkey-patch)
 // ============================================================
 async function exp2_internalCalls() {
-  sep('实验 2: Colibri 内部到底发了哪些请求？');
+  sep('Exp 2: What requests does Colibri actually make internally?');
 
   const calls: string[] = [];
 
@@ -60,30 +61,30 @@ async function exp2_internalCalls() {
       prover_mode: 'hybrid', proofStrategy: Strategy.VerifiedOnly,
     });
 
-    console.log('用户发起: colibri.request({ method: "eth_getBalance" })\n');
+    console.log('User call: colibri.request({ method: "eth_getBalance" })\n');
     const result = await c.request({ method: 'eth_getBalance', params: [ADDR, 'latest'] });
-    console.log(`返回结果: ${result}\n`);
+    console.log(`Result: ${result}\n`);
 
-    console.log('SDK 内部真实网络轨迹:');
+    console.log('SDK internal network trace:');
     calls.forEach((log, i) => console.log(`  ${i + 1}. ${log}`));
 
-    console.log('\n💡 原理解析:');
-    console.log('  - SDK 没有直接转发 eth_getBalance，而是拆解为两步:');
-    console.log('    1) 向 Prover 请求信标链区块头（含 BLS 签名）');
-    console.log('    2) 向 RPC 请求 eth_getProof（含账户 MPT 证明）');
-    console.log('  - 本地用 BLS 签名验证区块头 → 用 stateRoot 验证 MPT 证明 → 提取 balance');
+    console.log('\nPrinciple analysis:');
+    console.log('  - SDK does not forward eth_getBalance directly; it decomposes into two steps:');
+    console.log('    1) Request beacon block header from Prover (with BLS signature)');
+    console.log('    2) Request eth_getProof from RPC (with account MPT proof)');
+    console.log('  - Locally verify BLS signature on block header -> verify MPT proof via stateRoot -> extract balance');
   } catch (e: any) {
-    console.log('实验 2 异常:', e.message);
+    console.log('Exp 2 error:', e.message);
   } finally {
     globalThis.fetch = originalFetch;
   }
 }
 
 // ============================================================
-// 实验 3: 数据一致性交叉比对
+// Experiment 3: Data consistency cross-comparison
 // ============================================================
 async function exp3_dataConsistency() {
-  sep('实验 3: 标准 RPC vs Hybrid vs Remote 一致性');
+  sep('Exp 3: Standard RPC vs Hybrid vs Remote consistency');
 
   const rpc = new ethers.JsonRpcProvider(SELF_RPC);
   const hybrid = new Colibri({
@@ -103,9 +104,9 @@ async function exp3_dataConsistency() {
   ]);
 
   console.log('eth_getBalance:');
-  console.log(`  直接RPC:  ${rpcBal}`);
-  console.log(`  Hybrid:   ${hybBal}  ${rpcBal === hybBal ? '✅' : '❌ 不一致!'}`);
-  console.log(`  Remote:   ${remBal}  ${rpcBal === remBal ? '✅' : '❌ 不一致!'}`);
+  console.log(`  Direct RPC: ${rpcBal}`);
+  console.log(`  Hybrid:     ${hybBal}  ${rpcBal === hybBal ? 'OK' : 'MISMATCH!'}`);
+  console.log(`  Remote:     ${remBal}  ${rpcBal === remBal ? 'OK' : 'MISMATCH!'}`);
 
   // eth_getCode
   const UNISWAP = '0x1F98431c8aD98523631AE4a59f267346ea31F984';
@@ -116,9 +117,9 @@ async function exp3_dataConsistency() {
   ]);
 
   console.log('\neth_getCode (Uniswap):');
-  console.log(`  直接RPC:  ${rpcCode.length} 字符  ${rpcCode.slice(0, 40)}...`);
-  console.log(`  Hybrid:   ${(hybCode as string).length} 字符  ${(hybCode as string).slice(0, 40)}...  ${rpcCode === hybCode ? '✅' : '❌'}`);
-  console.log(`  Remote:   ${(remCode as string).length} 字符  ${(remCode as string).slice(0, 40)}...  ${rpcCode === remCode ? '✅' : '❌'}`);
+  console.log(`  Direct RPC: ${rpcCode.length} chars  ${rpcCode.slice(0, 40)}...`);
+  console.log(`  Hybrid:     ${(hybCode as string).length} chars  ${(hybCode as string).slice(0, 40)}...  ${rpcCode === hybCode ? 'OK' : 'MISMATCH'}`);
+  console.log(`  Remote:     ${(remCode as string).length} chars  ${(remCode as string).slice(0, 40)}...  ${rpcCode === remCode ? 'OK' : 'MISMATCH'}`);
 
   // eth_call
   const USDT = '0xdAC17F958D2ee523a2206206994597C13D831ec7';
@@ -131,18 +132,18 @@ async function exp3_dataConsistency() {
   ]);
 
   console.log('\neth_call (USDT balanceOf):');
-  console.log(`  直接RPC:  ${rpcCall}`);
-  console.log(`  Remote:   ${remCall}  ${rpcCall === remCall ? '✅' : '❌ 不一致!'}`);
+  console.log(`  Direct RPC: ${rpcCall}`);
+  console.log(`  Remote:     ${remCall}  ${rpcCall === remCall ? 'OK' : 'MISMATCH!'}`);
 
-  console.log('\n结论: 三种方式返回的数据完全一致。');
-  console.log('      Colibri 不修改数据，只在返回前多做了密码学验证。');
+  console.log('\nConclusion: All three methods return identical data.');
+  console.log('           Colibri does not modify data; it only adds cryptographic verification before returning.');
 }
 
 // ============================================================
-// 实验 4: 执行层（MPT）精准投毒验证
+// Experiment 4: Execution layer (MPT) precise poisoning verification
 // ============================================================
 async function exp4_robustPoisonProof() {
-  sep('实验 4: 执行层投毒 —— 篡改账户 MPT 证明内容');
+  sep('Exp 4: Execution layer poisoning - tamper with account MPT proof');
 
   globalThis.fetch = async (input: RequestInfo | URL, init?: RequestInit) => {
     const res = await originalFetch(input, init);
@@ -151,12 +152,12 @@ async function exp4_robustPoisonProof() {
     if (!url.includes('colibri-proof.tech') && typeof init?.body === 'string' && init.body.includes('eth_getProof')) {
       const json = await res.json();
       if (json?.result?.accountProof?.length > 0) {
-        console.log('  [拦截] 对 eth_getProof 的 accountProof 进行微调投毒...');
+        console.log('  [INTERCEPT] Poisoning eth_getProof accountProof...');
         const targetProof = json.result.accountProof[0];
-        console.log(`  原始 accountProof: ${targetProof}`);
+        console.log(`  Original accountProof: ${targetProof}`);
         const lastChar = targetProof.slice(-1);
         const newLastChar = lastChar === 'a' ? 'b' : 'a';
-        console.log(`  修改 accountProof: ${targetProof.slice(0, -1) + newLastChar}`);
+        console.log(`  Modified accountProof: ${targetProof.slice(0, -1) + newLastChar}`);
         json.result.accountProof[0] = targetProof.slice(0, -1) + newLastChar;
       }
       return new Response(JSON.stringify(json), res);
@@ -171,13 +172,13 @@ async function exp4_robustPoisonProof() {
     });
 
     await c.request({ method: 'eth_getBalance', params: [ADDR, 'latest'] });
-    console.log('  ❌ 严重风险：SDK 接受了被篡改的 MPT 证明！');
+    console.log('  CRITICAL RISK: SDK accepted the tampered MPT proof!');
     return false;
   } catch (e: any) {
-    console.log(`  ✅ 成功熔断！SDK 捕获异常: ${e.message}`);
-    console.log('  💡 原理解析: 当 RPC 节点返回被篡改的账户证明时，');
-    console.log('     本地 MPT Merkle Root 校验会直接宣告失败。');
-    console.log('     即使只改了一个十六进制字符，Merkle 树根哈希也会完全不同。');
+    console.log(`  FUSE TRIGGERED! SDK caught exception: ${e.message}`);
+    console.log('  Principle: When RPC returns a tampered account proof,');
+    console.log('     local MPT Merkle Root verification will fail immediately.');
+    console.log('     Even changing a single hex character causes the Merkle root hash to differ completely.');
     return true;
   } finally {
     globalThis.fetch = originalFetch;
@@ -185,10 +186,10 @@ async function exp4_robustPoisonProof() {
 }
 
 // ============================================================
-// 实验 5: 共识层（BLS 签名）精准投毒验证 —— Local 模式
+// Experiment 5: Consensus layer (BLS signature) precise poisoning - Local mode
 // ============================================================
 async function exp5_localConsensusPoison() {
-  sep('实验 5: 共识层投毒 —— 篡改信标链区块 state_root');
+  sep('Exp 5: Consensus layer poisoning - tamper with beacon block state_root');
 
   const SELF_CL = 'http://88.99.30.186:4200/';
   let tampered = false;
@@ -196,7 +197,7 @@ async function exp5_localConsensusPoison() {
   globalThis.fetch = async (input: RequestInfo | URL, init?: RequestInit) => {
     const url = input.toString();
 
-    // 拦截信标链请求，强制 Accept: application/json（默认返回 SSZ 二进制）
+    // Intercept beacon chain requests, force Accept: application/json (default returns SSZ binary)
     if (url.includes('4200') && url.includes('beacon')) {
       const newInit = {
         ...init,
@@ -210,9 +211,9 @@ async function exp5_localConsensusPoison() {
         let json: any;
         try { json = JSON.parse(text); } catch { return res; }
 
-        // 信标链区块的 state_root 在 data.message.state_root
+        // Beacon block state_root is at data.message.state_root
         if (json?.data?.message?.state_root) {
-          console.log(`  [拦截] state_root = ${json.data.message.state_root.slice(0, 30)}... → 篡改为全零`);
+          console.log(`  [INTERCEPT] state_root = ${json.data.message.state_root.slice(0, 30)}... -> zeroed out`);
           json.data.message.state_root = '0x' + '0'.repeat(64);
           tampered = true;
           return new Response(JSON.stringify(json), res);
@@ -234,17 +235,17 @@ async function exp5_localConsensusPoison() {
 
     await c.request({ method: 'eth_getBalance', params: [ADDR, 'latest'] });
     if (tampered) {
-      console.log('  ❌ 严重风险：SDK 接受了被篡改的共识状态根！');
+      console.log('  CRITICAL RISK: SDK accepted the tampered consensus state root!');
       return false;
     }
-    console.log('  ⚠️ 未拦截到信标链请求');
+    console.log('  No beacon chain request intercepted');
     return null;
   } catch (e: any) {
-    console.log(`  ✅ 成功熔断！SDK 捕获异常: ${e.message}`);
-    console.log('  💡 原理解析: Local 模式下，SDK 直接从信标链节点拉取区块头，');
-    console.log('     并在本地 WASM 中验证 BLS 签名。篡改 state_root 会导致');
-    console.log('     区块哈希与 BLS 签名不匹配 → 签名验证失败。');
-    console.log('     这证明即使自建的信标链节点作恶，本地也能检测到。');
+    console.log(`  FUSE TRIGGERED! SDK caught exception: ${e.message}`);
+    console.log('  Principle: In Local mode, SDK fetches block headers directly from the beacon node,');
+    console.log('    and verifies BLS signatures in local WASM. Tampering with state_root causes');
+    console.log('    block hash vs BLS signature mismatch -> signature verification failure.');
+    console.log('    This proves that even if your own beacon node is malicious, it can be detected locally.');
     return true;
   } finally {
     globalThis.fetch = originalFetch;
@@ -252,13 +253,13 @@ async function exp5_localConsensusPoison() {
 }
 
 // ============================================================
-// 实验 6: 模式分水岭 —— Hybrid vs Remote 网络拓扑对比
+// Experiment 6: Mode watershed - Hybrid vs Remote network topology comparison
 // ============================================================
 async function exp6_modeComparison() {
-  sep('实验 6: Hybrid 与 Remote 的网络拓扑与信任边界对比');
+  sep('Exp 6: Hybrid vs Remote network topology and trust boundary comparison');
 
-  // --- Hybrid 模式 ---
-  console.log('--- Hybrid 模式 ---');
+  // --- Hybrid mode ---
+  console.log('--- Hybrid mode ---');
   const hybridCalls: string[] = [];
 
   globalThis.fetch = async (input: RequestInfo | URL, init?: RequestInit) => {
@@ -278,17 +279,17 @@ async function exp6_modeComparison() {
     });
     await hybrid.request({ method: 'eth_getBalance', params: [ADDR, 'latest'] });
   } catch (e: any) {
-    hybridCalls.push(`异常: ${e.message}`);
+    hybridCalls.push(`Error: ${e.message}`);
   } finally {
     globalThis.fetch = originalFetch;
   }
 
-  console.log('  网络请求:');
+  console.log('  Network requests:');
   hybridCalls.forEach(c => console.log(`    ${c}`));
-  console.log('  信任模型: 本地验证 BLS 签名 + MPT 证明，RPC 和 Prover 均可作恶但无法通过验证');
+  console.log('  Trust model: Locally verify BLS signature + MPT proof; both RPC and Prover can be malicious but cannot pass verification');
 
-  // --- Remote 模式 ---
-  console.log('\n--- Remote 模式 ---');
+  // --- Remote mode ---
+  console.log('\n--- Remote mode ---');
   const remoteCalls: string[] = [];
 
   globalThis.fetch = async (input: RequestInfo | URL, init?: RequestInit) => {
@@ -308,21 +309,21 @@ async function exp6_modeComparison() {
     });
     await remote.request({ method: 'eth_getBalance', params: [ADDR, 'latest'] });
   } catch (e: any) {
-    remoteCalls.push(`异常: ${e.message}`);
+    remoteCalls.push(`Error: ${e.message}`);
   } finally {
     globalThis.fetch = originalFetch;
   }
 
-  console.log('  网络请求:');
+  console.log('  Network requests:');
   remoteCalls.forEach(c => console.log(`    ${c}`));
-  console.log('  信任模型: 本地验证 BLS 签名 + Prover 返回的证明，完全不依赖 RPC 节点');
+  console.log('  Trust model: Locally verify BLS signature + Prover-returned proofs; completely independent of RPC nodes');
 }
 
 // ============================================================
 // Main
 // ============================================================
 (async () => {
-  console.log('Colibri Stateless 深度原理验证\n');
+  console.log('Colibri Stateless Deep Principle Verification\n');
 
   await exp1_isStandardRPC();
   await exp2_internalCalls();

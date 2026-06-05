@@ -7,7 +7,7 @@ async function main() {
     const netConfig = config.NETWORKS[chainId];
 
     if (!netConfig) {
-      console.error(`未知链配置: ${chainId}，跳过 ${testCase.name}`);
+      console.error(`Unknown chain config: ${chainId}, skipping ${testCase.name}`);
       continue;
     }
 
@@ -18,10 +18,10 @@ async function main() {
     try {
       await verifier.verify(testCase.web3Url, testCase);
     } catch (err) {
-      console.error(`💥 ${testCase.name} 失败: ${err}`);
+      console.error(`💥 ${testCase.name} failed: ${err}`);
     }
   }
-  console.log('\n🎉 完成');
+  console.log('\n🎉 Done');
 }
 
 main().catch(err => { console.error(err); process.exit(1); });

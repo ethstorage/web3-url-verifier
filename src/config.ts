@@ -10,7 +10,6 @@ export interface TestCase {
   chainId: number;
   /** 'manual' = FlatDirectory/EthStorage, 'auto' = contract method call */
   resolveMode: 'manual' | 'auto';
-  /** manual 模式：网关将 / 作为 rootFile 提供 */
   rootFile?: string;
 }
 

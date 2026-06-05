@@ -10,7 +10,7 @@ const ERC5018_ABI = [
   'function getChunkHashesBatch((bytes name, uint256[] chunkIds)[] fileChunks) view returns (bytes32[])',
 ];
 
-// ─── 工具函数 ───────────────────────────────
+// ─── Utility Functions ───────────────────────────────
 
 function createSemaphore(limit: number) {
   let running = 0;
@@ -40,7 +40,7 @@ function elapsed(start: number) { return ((Date.now() - start) / 1000).toFixed(1
 
 function sleep(ms: number) { return new Promise(r => setTimeout(r, ms)); }
 
-// ─── 类型 ───────────────────────────────────
+// ─── Types ───────────────────────────────────
 
 interface VerifyResult {
   path: string;
@@ -79,7 +79,7 @@ export class Web3URLVerifier {
   }
 
   // ════════════════════════════════════════════════════════
-  //  主入口
+  //  Main Entry
   // ════════════════════════════════════════════════════════
 
   async verify(web3Url: string, testCase: TestCase): Promise<VerifyResult[]> {
@@ -87,11 +87,11 @@ export class Web3URLVerifier {
 
     const { contract, esChainId, path: urlPath } = this._parseUrl(web3Url);
     const base = `https://${contract}.${esChainId}.w3link.io`;
-    console.log(`   合约: ${contract} | ES Chain: ${esChainId}`);
+    console.log(`   Contract: ${contract} | ES Chain: ${esChainId}`);
 
-    // === 发现 + 下载 ===
+    // === Discovery + Download ===
     const startDl = Date.now();
-    console.log('   发现+下载中...');
+    console.log('   Discovering + downloading...');
 
     const fetched = new Map<string, Buffer>();
     const dlSem = createSemaphore(16);
@@ -99,10 +99,10 @@ export class Web3URLVerifier {
     const startPath = urlPath;
     await this._crawl(base + startPath, startPath, base, fetched, dlSem, (n, total) => {
       if (n % 20 === 0 || n === total)
-        process.stderr.write(`\r   发现+下载: ${n}/${total} (${elapsed(startDl)}s)    `);
+        process.stderr.write(`\r   Discover+Download: ${n}/${total} (${elapsed(startDl)}s)    `);
     });
 
-    // 去重：Gateway 在 / 返回 rootFile 内容，保留 rootFile 路径
+    // Dedupe: Gateway returns rootFile at /, keep the rootFile path
     if (testCase.rootFile) {
       const rootPath = '/' + testCase.rootFile;
       if (rootPath !== '/' && fetched.has('/') && fetched.has(rootPath)) {
@@ -110,9 +110,9 @@ export class Web3URLVerifier {
       }
     }
 
-    process.stderr.write(`\r   下载完成: ${fetched.size} 文件 | ${elapsed(startDl)}s\n`);
+    process.stderr.write(`\r   Download complete: ${fetched.size} files | ${elapsed(startDl)}s\n`);
 
-    // === 验证 ===
+    // === Verification ===
     const startV = Date.now();
     const vSem = createSemaphore(8);
     let vDone = 0;
@@ -125,21 +125,21 @@ export class Web3URLVerifier {
         const r = await this._verifyFile(content, contract, relPath, testCase);
         vDone++;
         if (vDone % 50 === 0 || vDone === total)
-          process.stderr.write(`\r   验证: ${vDone}/${total} (${elapsed(startV)}s)    `);
+          process.stderr.write(`\r   Verify: ${vDone}/${total} (${elapsed(startV)}s)    `);
         return { path: relPath, size: content.length, ...r };
       } finally { release(); }
     }));
 
     const tVerify = Date.now() - startV;
-    process.stderr.write(`\r   验证: ${vDone}/${total} (${elapsed(startV)}s)    \n`);
+    process.stderr.write(`\r   Verify: ${vDone}/${total} (${elapsed(startV)}s)    \n`);
 
     this._printReport(testCase.name, contract, results, Date.now() - startDl - tVerify, tVerify);
 
-    // Manual 模式：分析失败的根目录文件（通常因 Gateway 注入导致）
+    // Manual mode: analyze failed root files (usually due to Gateway injection)
     if (testCase.resolveMode !== 'auto') {
       const failedRoot = results.filter(r => !r.match && (r.path === '/' || r.path === '/index.html'));
       if (failedRoot.length > 0) {
-        console.log('📊 分析失败根目录文件...');
+        console.log('📊 Analyzing failed root files...');
         for (const fail of failedRoot) {
           const gatewayContent = fetched.get(fail.path);
           if (!gatewayContent) continue;
@@ -147,7 +147,7 @@ export class Web3URLVerifier {
           if (contractContent && contractContent.length > 0) {
             this._diffContent(gatewayContent, contractContent);
           } else {
-            console.log('    ❌ 无法从合约获取文件内容');
+            console.log('   ❌ Cannot fetch file content from contract');
           }
         }
       }
@@ -157,7 +157,7 @@ export class Web3URLVerifier {
   }
 
   // ════════════════════════════════════════════════════════
-  //  爬取（两模式共用）
+  //  Crawl (shared by both modes)
   // ════════════════════════════════════════════════════════
 
   private async _crawl(
@@ -190,14 +190,14 @@ export class Web3URLVerifier {
       const html = buf.toString('utf-8');
       const rawLinks: string[] = [];
 
-      // 提取 <script src>, <img src>, <video src> 等
+      // Extract <script src>, <img src>, <video src> etc.
       const srcRe = /<(?:script|img|video|audio|source|iframe|embed|track)\b[^>]*?\bsrc=["']([^"']+)["'][^>]*?>/gi;
       let m: RegExpExecArray | null;
       while ((m = srcRe.exec(html)) !== null) {
         if (m[1]) rawLinks.push(m[1]);
       }
 
-      // 提取 <link href>
+      // Extract <link href>
       const linkTagRe = /<link\b([^>]*?)>/gi;
       while ((m = linkTagRe.exec(html)) !== null) {
         const attrs = m[1];
@@ -210,12 +210,12 @@ export class Web3URLVerifier {
         }
       }
 
-      // 根路径自动请求 favicon
+      // Auto-request favicon from root path
       if (relPath === '/' || relPath.endsWith('/index.html')) {
         rawLinks.push('/favicon.ico');
       }
 
-      // 路径规范化
+      // Path normalization
       const links: string[] = [];
       for (const raw of rawLinks) {
         if (!raw || raw.startsWith('#') || raw.startsWith('data:') ||
@@ -244,7 +244,7 @@ export class Web3URLVerifier {
         }
       }
 
-      // 并行下载资源
+      // Parallel resource download
       const resourcePaths = [...new Set(links)].filter(l => !fetched.has(l));
       await Promise.all(resourcePaths.map(async (l) => {
         const release2 = await dlSem();
@@ -257,15 +257,15 @@ export class Web3URLVerifier {
             fetched.set(l, b);
             onProgress(fetched.size, fetched.size);
           }
-        } catch (_) { /* 忽略单个资源失败 */ } finally { release2(); }
+        } catch (_) { /* ignore individual resource failure */ } finally { release2(); }
       }));
-    } catch (_) { /* 忽略请求失败 */ } finally {
+    } catch (_) { /* ignore request failure */ } finally {
       if (!released) release();
     }
   }
 
   // ════════════════════════════════════════════════════════
-  //  文件验证分发
+  //  File Verification Dispatch
   // ════════════════════════════════════════════════════════
 
   private async _verifyFile(
@@ -274,7 +274,7 @@ export class Web3URLVerifier {
     relPath: string,
     testCase: TestCase,
   ): Promise<{ match: boolean; detail: string }> {
-    if (content.length === 0) return { match: false, detail: '空文件' };
+    if (content.length === 0) return { match: false, detail: 'empty file' };
     if (testCase.resolveMode === 'auto') {
       return this._verifyAutoFile(content, contract, relPath);
     }
@@ -282,7 +282,7 @@ export class Web3URLVerifier {
   }
 
   // ════════════════════════════════════════════════════════
-  //  Manual 模式：EthStorage KZG hash 验证
+  //  Manual mode: EthStorage KZG hash verification
   // ════════════════════════════════════════════════════════
 
   private async _verifyManualFile(
@@ -299,16 +299,16 @@ export class Web3URLVerifier {
 
     const hexName = ethers.hexlify(ethers.toUtf8Bytes(storedName));
 
-    // Prover 查 countChunks
+    // Prover query countChunks
     const countRs = await this._proverCall(contract,
       this.erc5018.encodeFunctionData('countChunks', [hexName]));
     let chunkCount = 0;
     if (countRs.result && countRs.result !== '0x') {
       try { chunkCount = Number(ethers.AbiCoder.defaultAbiCoder().decode(['uint256'], countRs.result)[0]); } catch (_) {}
     }
-    if (chunkCount === 0) return { match: false, detail: '无chunk记录' };
+    if (chunkCount === 0) return { match: false, detail: 'no chunk records' };
 
-    // Prover 批量查 getChunkHashesBatch
+    // Prover batch query getChunkHashesBatch
     const chunkIds = [...Array(chunkCount).keys()];
     const batchRs = await this._proverCall(contract,
       this.erc5018.encodeFunctionData('getChunkHashesBatch', [[{ name: hexName, chunkIds }]]));
@@ -317,37 +317,37 @@ export class Web3URLVerifier {
       try { contractHashes = ethers.AbiCoder.defaultAbiCoder().decode(['bytes32[]'], batchRs.result)[0]; } catch (_) {}
     }
 
-    // 本地 KZG hash
+    // Local KZG hash
     let localHashes: string[];
     try { localHashes = (await computeEthStorageHashes(content)).hashes; }
-    catch (err: any) { return { match: false, detail: `KZG错误: ${String(err).slice(0, 60)}` }; }
+    catch (err: any) { return { match: false, detail: `KZG error: ${String(err).slice(0, 60)}` }; }
 
     for (let i = 0; i < localHashes.length; i++) {
       if (localHashes[i].toLowerCase() !== (contractHashes[i] || '').toLowerCase())
-        return { match: false, detail: 'hash不匹配' };
+        return { match: false, detail: 'hash mismatch' };
     }
     return { match: true, detail: 'OK' };
   }
 
-  /** Manual 模式：直接从 ES RPC 取文件内容（用于根目录注入分析） */
+  /** Manual mode: fetch file content directly from ES RPC (for root injection analysis) */
   private async _fetchFileDirectly(contract: string, fileName: string): Promise<Buffer | null> {
     try {
       const calldata = ethers.hexlify(ethers.toUtf8Bytes(fileName));
       const result = await this.esProvider.send('eth_call', [{ to: contract, data: calldata }, 'latest']);
       if (result === '0x' || result.length <= 2) {
-        console.log('    ❌ 合约返回空内容');
+        console.log('   ❌ Contract returned empty content');
         return null;
       }
       const cleanHex = result.startsWith('0x') ? result.slice(2) : result;
       const fullBuffer = Buffer.from(cleanHex, 'hex');
       return fullBuffer.length > 64 ? fullBuffer.subarray(64) : fullBuffer;
     } catch (err: any) {
-      console.log(`    ❌ 从合约获取失败: ${String(err).slice(0, 80)}`);
+      console.log(`   ❌ Failed to fetch from contract: ${String(err).slice(0, 80)}`);
       return null;
     }
   }
 
-  /** Manual 模式：对比 Gateway 响应与合约原始响应（定位 Gateway 注入） */
+  /** Manual mode: compare Gateway response vs contract raw response (locate Gateway injection) */
   private _diffContent(gatewayContent: Buffer, contractContent: Buffer): void {
     const gatewayStr = gatewayContent.toString('utf-8');
     const contractStr = contractContent.toString('utf-8');
@@ -357,7 +357,7 @@ export class Web3URLVerifier {
     for (let i = 0; i < minLen; i++) {
       if (gatewayStr[i] !== contractStr[i]) { startIdx = i; break; }
     }
-    if (startIdx < 0) { console.log('   内容完全一致'); return; }
+    if (startIdx < 0) { console.log('   Content identical'); return; }
 
     let gateEnd = gatewayStr.length - 1;
     let contEnd = contractStr.length - 1;
@@ -369,47 +369,47 @@ export class Web3URLVerifier {
     const rawInjection = gatewayStr.slice(startIdx, gateEnd + 1);
     const compressed = rawInjection.replace(/[\r\n]+/g, ' ').replace(/\s+/g, ' ').trim();
     const showLen = 40;
-    console.log(`  📍 检测到 Gateway 注入内容 (原始总长: ${rawInjection.length} 字节):`);
-    console.log(`  注入内容: ${compressed.length <= showLen * 2 ? compressed : compressed.slice(0, showLen) + ' ... ' + compressed.slice(-showLen)}`);
+    console.log(`  📍 Gateway injection detected (raw length: ${rawInjection.length} bytes):`);
+    console.log(`  Injected: ${compressed.length <= showLen * 2 ? compressed : compressed.slice(0, showLen) + ' ... ' + compressed.slice(-showLen)}`);
   }
 
   // ════════════════════════════════════════════════════════
-  //  Auto 模式：解析路径 → 构造 calldata → Prover → 对比
+  //  Auto mode: parse path → build calldata → Prover → compare
   // ════════════════════════════════════════════════════════
 
-  /** 解析 Auto 路径，如 /render/78/0 → render(78, 0) */
+  /** Parse Auto path, e.g. /render/78/0 → render(78, 0) */
   private _parseAutoPath(relPath: string): { funcName: string; params: string[] } | null {
     const parts = relPath.split('/').filter(Boolean);
     if (parts.length === 0) return null;
     return { funcName: parts[0], params: parts.slice(1) };
   }
 
-  /** 从函数名+参数构造 ABI calldata（数字→uint256，其他→string） */
+  /** Build ABI calldata from function name + params (numbers → uint256, others → string) */
   private _buildAutoCalldata(funcName: string, params: string[]): string {
     const types = params.map(p => /^\d+$/.test(p) ? 'uint256' : 'string');
     const values = params.map((p, i) => types[i] === 'uint256' ? BigInt(p) : p);
     return new ethers.Interface([`function ${funcName}(${types.join(',')})`]).encodeFunctionData(funcName, values);
   }
 
-  /** Auto 模式：Gateway 内容 vs Prover eth_call 结果 */
+  /** Auto mode: Gateway content vs Prover eth_call result */
   private async _verifyAutoFile(
     content: Buffer,
     contract: string,
     relPath: string,
   ): Promise<{ match: boolean; detail: string }> {
-    if (relPath === '/' || relPath === '') return { match: true, detail: '根路径，跳过' };
+    if (relPath === '/' || relPath === '') return { match: true, detail: 'root path, skipped' };
 
     const pathInfo = this._parseAutoPath(relPath);
-    if (!pathInfo) return { match: false, detail: `无法解析路径: ${relPath}` };
+    if (!pathInfo) return { match: false, detail: `Cannot parse path: ${relPath}` };
 
     let calldata: string;
     try { calldata = this._buildAutoCalldata(pathInfo.funcName, pathInfo.params); }
-    catch (err: any) { return { match: false, detail: `calldata构造失败: ${String(err).slice(0, 60)}` }; }
+    catch (err: any) { return { match: false, detail: `calldata build failed: ${String(err).slice(0, 60)}` }; }
 
     const proverRs = await this._proverCall(contract, calldata);
-    if (!proverRs.result) return { match: false, detail: `Prover调用失败: ${proverRs.error}` };
+    if (!proverRs.result) return { match: false, detail: `Prover call failed: ${proverRs.error}` };
 
-    // 解码 Prover 返回值（优先 bytes，回退 string，最后当原始 hex）
+    // Decode Prover result (prefer bytes, fallback string, last raw hex)
     let proverBytes: Buffer;
     try {
       const decoded = ethers.AbiCoder.defaultAbiCoder().decode(['bytes'], proverRs.result);
@@ -424,21 +424,21 @@ export class Web3URLVerifier {
     }
 
     const match = content.equals(proverBytes);
-    return { match, detail: match ? 'OK' : `内容不匹配 (gateway=${content.length}B, prover=${proverBytes.length}B)` };
+    return { match, detail: match ? 'OK' : `content mismatch (gateway=${content.length}B, prover=${proverBytes.length}B)` };
   }
 
   // ════════════════════════════════════════════════════════
-  //  共用工具
+  //  Shared Utilities
   // ════════════════════════════════════════════════════════
 
-  /** 解析 web3:// URL */
+  /** Parse web3:// URL */
   private _parseUrl(rawUrl: string): { contract: string; esChainId: number; path: string } {
     const m = rawUrl.match(/^web3:\/\/(0x[a-fA-F0-9]+)(?::(\d+))?(\/.*)?$/);
-    if (!m) throw new Error(`无法解析: ${rawUrl}`);
+    if (!m) throw new Error(`Cannot parse: ${rawUrl}`);
     return { contract: m[1], esChainId: parseInt(m[2] || '1'), path: m[3] || '/' };
   }
 
-  /** Prover 调用（带指数退避重试） */
+  /** Prover call (with exponential backoff retry) */
   private async _proverCall(contract: string, calldata: string, maxRetries = 3): Promise<ProverResult> {
     const _w = console.warn;
     console.warn = () => {};
@@ -465,17 +465,17 @@ export class Web3URLVerifier {
     } finally { console.warn = _w; }
   }
 
-  /** 打印摘要报告 */
+  /** Print summary report */
   private _printReport(name: string, contract: string, results: VerifyResult[], tDownload: number, tVerify: number) {
     const passed = results.filter(r => r.match);
     const failed = results.filter(r => !r.match);
     const totalSize = results.reduce((s, r) => s + (r.size || 0), 0);
 
     console.log(`\n══════════════════════════════════════════════`);
-    console.log(`  ${name}  合约: ${contract}`);
+    console.log(`  ${name}  Contract: ${contract}`);
     console.log('──────────────────────────────────────────────');
-    console.log(`  文件: ${results.length} | ✅${passed.length} ❌${failed.length} | ${(totalSize/1024).toFixed(1)}KB`);
-    console.log(`  下载: ${(tDownload/1000).toFixed(1)}s | 验证: ${(tVerify/1000).toFixed(1)}s`);
+    console.log(`  Files: ${results.length} | ✅${passed.length} ❌${failed.length} | ${(totalSize/1024).toFixed(1)}KB`);
+    console.log(`  Download: ${(tDownload/1000).toFixed(1)}s | Verify: ${(tVerify/1000).toFixed(1)}s`);
 
     const groups = new Map<string, { count: number; size: number; ok: number; fail: number }>();
     for (const r of results) {
@@ -487,7 +487,7 @@ export class Web3URLVerifier {
       r.match ? g.ok++ : g.fail++;
     }
 
-    console.log(`  ${'目录'.padEnd(34)} | 文件 | 大小     | 状态`);
+    console.log(`  ${'Dir'.padEnd(34)} | Files | Size     | Status`);
     for (const [p, g] of [...groups].sort((a, b) => a[0].localeCompare(b[0]))) {
       const sz = g.size >= 1048576 ? `${(g.size/1048576).toFixed(1)}MB` : `${(g.size/1024).toFixed(1)}KB`;
       const st = g.fail > 0 ? `✅${g.ok} ❌${g.fail}` : `✅${g.ok}`;
@@ -497,8 +497,8 @@ export class Web3URLVerifier {
     if (failed.length > 0) {
       const reasons: Record<string, number> = {};
       for (const f of failed) { const k = f.detail; reasons[k] = (reasons[k] || 0) + 1; }
-      console.log(`  失败: ${Object.entries(reasons).map(([k, v]) => `${v}x ${k}`).join(', ')}`);
-      console.log(`  样本: ${failed.slice(0, 5).map(f => f.path).join(', ')}`);
+      console.log(`  Failed: ${Object.entries(reasons).map(([k, v]) => `${v}x ${k}`).join(', ')}`);
+      console.log(`  Samples: ${failed.slice(0, 5).map(f => f.path).join(', ')}`);
     }
     console.log('══════════════════════════════════════════════\n');
   }
