@@ -82,7 +82,7 @@ Compare rawResult == verifiedResult → Match ✅
 
 ### 3.2 EthStorage File Data
 
-Applicable to HTML, CSS, JS, PNG, Video, and any arbitrary Blob files.
+Applicable to HTML, CSS, JS, PNG, Video, and any Blob files.
 
 **What is recorded on-chain when a file is uploaded?**
 
@@ -251,7 +251,7 @@ The tests demonstrate:
 - **Performance is acceptable**: Verification time is on the same order as download time
 - **Browser extension deployment is viable**
 
-Clients can verify the authenticity of received content without trusting Gateways, RPC providers, or other intermediaries. No need to run a full node, sync the chain yourself, or trust any data provider — **Don't trust. Verify.**.
+Clients can verify the authenticity of received content without trusting Gateways, RPC providers, or other intermediaries. No need to run a full node, sync the chain yourself, or trust any data provider — **Don't trust. Verify.**
 
 ---
 
