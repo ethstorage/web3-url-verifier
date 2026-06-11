@@ -222,7 +222,7 @@ localHash == chainHash → ✅ File content matches the uploaded content
 
 ## 8. Discovery: Data Retrieval Path Injection
 
-The data retrieval path used during testing (w3link.io) automatically injects scripts into HTML to convert web3:// links to https:// links:
+The data retrieval path used during testing (w3link.io) injects scripts into certain HTML pages to convert `web3://` links to `https://` links:
 
 ```html
 <script>
@@ -231,6 +231,8 @@ The data retrieval path used during testing (w3link.io) automatically injects sc
 ```
 
 This causes the retrieved content to differ from the original on-chain content, triggering verification failures.
+
+Not all HTML pages are affected. For example, the VBlog homepage discussed earlier verified successfully because its page structure did not trigger the gateway's injection logic, while other HTML pages may receive injected content.
 
 **Impact scope**: Only affects HTML files. JS, CSS, PNG, etc., are not impacted. After removing the injected script and recalculating, verification passes normally.
 
