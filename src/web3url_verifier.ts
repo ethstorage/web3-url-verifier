@@ -94,10 +94,11 @@ export class Web3URLVerifier {
     console.log('   Discovering + downloading...');
 
     const fetched = new Map<string, Buffer>();
+    const failedDownloads = new Map<string, string>();
     const dlSem = createSemaphore(16);
 
     const startPath = urlPath;
-    await this._crawl(base + startPath, startPath, base, fetched, dlSem, (n, total) => {
+    await this._crawl(base + startPath, startPath, base, fetched, failedDownloads, dlSem, (n, total) => {
       if (n % 20 === 0 || n === total)
         process.stderr.write(`\r   Discover+Download: ${n}/${total} (${elapsed(startDl)}s)    `);
     });
@@ -133,7 +134,7 @@ export class Web3URLVerifier {
     const tVerify = Date.now() - startV;
     process.stderr.write(`\r   Verify: ${vDone}/${total} (${elapsed(startV)}s)    \n`);
 
-    this._printReport(testCase.name, contract, results, Date.now() - startDl - tVerify, tVerify);
+    this._printReport(testCase.name, contract, results, failedDownloads, Date.now() - startDl - tVerify, tVerify);
 
     // Manual mode: analyze failed root files (usually due to Gateway injection)
     if (testCase.resolveMode !== 'auto') {
@@ -165,6 +166,7 @@ export class Web3URLVerifier {
     relPath: string,
     baseUrl: string,
     fetched: Map<string, Buffer>,
+    failedDownloads: Map<string, string>,
     dlSem: () => Promise<() => void>,
     onProgress: (n: number, total: number) => void,
   ) {
@@ -174,7 +176,10 @@ export class Web3URLVerifier {
       if (fetched.has(relPath)) return;
 
       const res = await fetch(url, { signal: AbortSignal.timeout(30000) });
-      if (!res.ok) return;
+      if (!res.ok) {
+        failedDownloads.set(relPath, `HTTP ${res.status}`);
+        return;
+      }
 
       const buf = Buffer.from(await res.arrayBuffer());
       if (buf.length === 0) return;
@@ -251,15 +256,22 @@ export class Web3URLVerifier {
         try {
           if (fetched.has(l)) return;
           const r = await fetch(baseUrl + l, { signal: AbortSignal.timeout(30000) });
-          if (!r.ok) return;
+          if (!r.ok) {
+            failedDownloads.set(l, `HTTP ${r.status}`);
+            return;
+          }
           const b = Buffer.from(await r.arrayBuffer());
           if (b.length > 0) {
             fetched.set(l, b);
             onProgress(fetched.size, fetched.size);
           }
-        } catch (_) { /* ignore individual resource failure */ } finally { release2(); }
+        } catch (e) {
+          failedDownloads.set(l, String(e).slice(0, 60));
+        } finally { release2(); }
       }));
-    } catch (_) { /* ignore request failure */ } finally {
+    } catch (e) {
+      failedDownloads.set(relPath, String(e).slice(0, 60));
+    } finally {
       if (!released) release();
     }
   }
@@ -466,15 +478,19 @@ export class Web3URLVerifier {
   }
 
   /** Print summary report */
-  private _printReport(name: string, contract: string, results: VerifyResult[], tDownload: number, tVerify: number) {
+  private _printReport(name: string, contract: string, results: VerifyResult[], failedDownloads: Map<string, string>, tDownload: number, tVerify: number) {
     const passed = results.filter(r => r.match);
     const failed = results.filter(r => !r.match);
     const totalSize = results.reduce((s, r) => s + (r.size || 0), 0);
 
     console.log(`\n══════════════════════════════════════════════`);
     console.log(`  ${name}  Contract: ${contract}`);
-    console.log('──────────────────────────────────────────────');
-    console.log(`  Files: ${results.length} | ✅${passed.length} ❌${failed.length} | ${(totalSize/1024).toFixed(1)}KB`);
+    console.log(`──────────────────────────────────────────────`);
+    const totalFiles = results.length + failedDownloads.size;
+    console.log(`  Files: ${totalFiles} | ✅  Verified: ${passed.length} | ❌  Verify fail: ${failed.length} | ${(totalSize / 1024).toFixed(1)}KB`);
+    if (failedDownloads.size) {
+      console.log(`  ⚠  Download fail: ${failedDownloads.size}`);
+    }
     console.log(`  Download: ${(tDownload/1000).toFixed(1)}s | Verify: ${(tVerify/1000).toFixed(1)}s`);
 
     const groups = new Map<string, { count: number; size: number; ok: number; fail: number }>();
