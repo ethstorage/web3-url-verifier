@@ -1,4 +1,4 @@
-# Stateless Verification for On-Chain Frontends
+# Client-Side Verification for On-Chain Frontends
 
 *We spent a decade hardening smart contracts. The web pages that drive them are still served on trust. Here's how EthStorage and Colibri close that gap — in the browser, without running a full node.*
 
