@@ -19,7 +19,7 @@ Smart contract security is a mature discipline. We audit, we fuzz, we formally v
 
 In February 2025, more than **$1.5 billion** was drained from Bybit. No smart contract was broken. Attackers had modified the Safe\{Wallet\} frontend JavaScript — served from an AWS S3 bucket — so that when Bybit's signers reviewed what looked like a routine transfer, the transaction they actually approved handed control of the wallet to the attackers. The contracts were flawless. The web page was the exploit.
 
-This is the part of the stack we keep leaving unguarded. The fix is to stop serving the frontend from a server at all.
+This is the part of the stack we keep leaving unguarded. The fix is to stop serving the frontend from a **centralized untrusted** server at all.
 
 ## Putting the frontend on-chain
 
