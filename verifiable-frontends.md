@@ -15,7 +15,7 @@
 
 ---
 
-Smart contract security is a mature discipline. We audit, we fuzz, we formally verify, and then we make the code immutable. But users don't touch contracts. They touch a *website* — the HTML and JavaScript that reads the chain, shows a balance, builds a transaction, and asks them to sign it. That website is almost always served the old-fashioned way: from an S3 bucket, a CDN, a server someone controls. It is the least-verified, most-trusted component in the entire stack, and it sits directly between the user and their keys.
+Smart contract security is a mature discipline. We audit, we fuzz, we formally verify, and then we make the code immutable. But users don't touch contracts. They touch a *website* — the HTML and JavaScript that reads the chain, shows a balance, builds a transaction, and asks them to sign it. That website is almost always served the old-fashioned way: from an S3 bucket, a CDN, a server someone controls. It is the **least-verified, most-trusted** component in the entire stack, and it sits directly between the user and their keys.
 
 In February 2025, more than **$1.5 billion** was drained from Bybit. No smart contract was broken. Attackers had modified the Safe\{Wallet\} frontend JavaScript — served from an AWS S3 bucket — so that when Bybit's signers reviewed what looked like a routine transfer, the transaction they actually approved handed control of the wallet to the attackers. The contracts were flawless. The web page was the exploit.
 
