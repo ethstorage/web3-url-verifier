@@ -31,7 +31,7 @@ Two things stand between that idea and real users. The first is **cost**: Ethere
 
 This post is about the second gap — **verification** — and the question is narrow and practical: **can a user — or their browser, or their wallet — independently verify that the bytes a gateway served are exactly the bytes committed on-chain, without trusting the gateway and without running a full node?**
 
-The answer is yes. Getting there rests on one piece of standard Ethereum infrastructure — the light client — so we'll start there, then show what we built.
+The answer is **yes**. Getting there rests on one piece of standard Ethereum infrastructure — the light client — so we'll start there, then show what we built.
 
 ## A 60-second primer on light clients
 
