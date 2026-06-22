@@ -48,14 +48,14 @@ Put them together, and a verifiable answer arrives as one bundle: the value, a M
 Verifying an answer this way is the standard light-client recipe, and it leaves one practical question: assembling that bundle is real work. Gathering the block header, the sync-committee signature, and a Merkle proof for every piece of state a page touches — then verifying all of it — is a lot to do inside a browser. **Colibri**, the stateless Ethereum client we built the prototype around (from corpus-core, developed with Ethereum Foundation support), answers this by splitting the light client into a **prover** and a **verifier**:
 
 ```
-  SERVER  (does the expensive work — untrusted)         CLIENT  (browser / wallet — trusts only math)
+  SERVER  (does the expensive work — untrusted)         CLIENT  (browser/wallet — trusts only math)
   ┌──────────────────────────────────┐                 ┌──────────────────────────────────┐
-  │ Colibri Prover                    │    1 request    │ Colibri Verifier  (small WASM)     │
-  │   gathers + bundles:              │ ──────────────► │   state: current sync committee    │
-  │     · block header                │                 │           (rotates every ~27h)     │
-  │     · sync-committee BLS signature│    1 proof      │   verifies:                        │
-  │     · Merkle-Patricia proofs      │ ◄────────────── │     · BLS sig  → header is canon   │
-  │                                   │    bundle       │     · MPT path → value ∈ state     │
+  │ Colibri Prover                   │    1 request    │ Colibri Verifier  (small WASM)   │
+  │   gathers + bundles:             │ ──────────────► │   state: current sync committee  │
+  │    · block header                │                 │           (rotates every ~27h)   │
+  │    · sync-committee BLS signature│    1 proof      │   verifies:                      │
+  │    · Merkle-Patricia proofs      │ ◄────────────── │     · BLS sig  → header is canon │
+  │                                  │    bundle       │     · MPT path → value ∈ state   │
   └──────────────────────────────────┘                 └──────────────────────────────────┘
        forge nothing: a tampered bundle simply fails to verify, so a dishonest prover can't lie
 ```
