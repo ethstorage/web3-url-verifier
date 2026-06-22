@@ -116,17 +116,17 @@ That's the whole trick: we never ask the gateway to be honest. We only ask wheth
 The question that decides whether any of this is real: is verification fast enough to sit in front of a user? We ran six real, deployed targets — the [EthStorage website](https://ethstorage.io), the [Safe wallet frontend](https://0x90A5629c3D7EbC48Be3012210a1b1c229432884a.3333.w3link.io), and [Vitalik's blog](https://0xc96dfda0171acdd1f176c7856fce01be690ea100.3333.w3link.io) — its homepage plus two image-heavy posts, [one from 2022](https://0xc96dfda0171acdd1f176c7856fce01be690ea100.3333.w3link.io/general/2022/06/20/backpack.html) and [one from 2024](https://0xc96dfda0171acdd1f176c7856fce01be690ea100.3333.w3link.io/general/2024/03/28/blobs.html) — plus [an on-chain-rendered NFT](https://0x79a7aa92314fda49262649c6aef543fb0a652243.1.w3link.io/render/78/0).
 
 ```
-═══════════════════════════════════════════════════════════════════════════════
- Site                          Files    Size      Download    Verify    Verify/DL
-───────────────────────────────────────────────────────────────────────────────
- EthStorage website               5    1.3 MB       6.1 s      3.3 s      0.54×
- Safe wallet frontend            16    4.4 MB      14.3 s      5.0 s      0.35×
- Vitalik's Blog — homepage        3    1.7 MB       9.3 s      3.0 s      0.32×
- Vitalik's Blog — article (2022) 16    3.1 MB      10.8 s      4.0 s      0.37×
- Vitalik's Blog — article (2024) 13    2.0 MB       9.7 s      6.4 s      0.66×
-───────────────────────────────────────────────────────────────────────────────
- On-chain NFT — render(78,0)      1   14.6 KB       1.0 s      2.9 s      2.90×
-═══════════════════════════════════════════════════════════════════════════════
+══════════════════════════════════════════════════════════════════════════════════════════════════
+ Site                          Files    Size      Download    Verify    Verify/DL   Data source
+──────────────────────────────────────────────────────────────────────────────────────────────────
+ EthStorage website               5    1.3 MB       6.1 s      3.3 s      0.54×      EthStorage
+ Safe wallet frontend            16    4.4 MB      14.3 s      5.0 s      0.35×      EthStorage
+ Vitalik's Blog — homepage        3    1.7 MB       9.3 s      3.0 s      0.32×      EthStorage
+ Vitalik's Blog — article (2022) 16    3.1 MB      10.8 s      4.0 s      0.37×      EthStorage
+ Vitalik's Blog — article (2024) 13    2.0 MB       9.7 s      6.4 s      0.66×      EthStorage
+──────────────────────────────────────────────────────────────────────────────────────────────────
+ On-chain NFT — render(78,0)      1   14.6 KB       1.0 s      2.9 s      2.90×   L1 contract state
+═══════════════════════════════════════════════════════════════════════════════════════════════════
 ```
 
 For ordinary static sites — HTML, JS, CSS, images served from EthStorage — verification is consistently *cheaper* than download. Across the five file-based sites, it averaged about **0.45× the download time**, and it runs concurrently with everything else: checking a page costs roughly half of what it costs to fetch it.
