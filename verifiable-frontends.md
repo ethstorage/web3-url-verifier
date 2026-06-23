@@ -103,7 +103,7 @@ So we verify a file in three steps:
           ▼                                              ▼
     on-chain versioned hash(es)            blob-encode → KZG commitment → versioned hash
           │                                              │
-          └───────────────────  compare  ───────────────┘
+          └───────────────────   compare  ───────────────┘
                   match  ⇒  bytes are exactly what was committed on-chain
 ```
 
