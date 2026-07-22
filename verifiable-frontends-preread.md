@@ -10,7 +10,7 @@ Users trust a dapp's contracts, but the frontend is served from a centralized ho
 
 ## The idea
 
-Serve the frontend from on-chain storage, addressable via [`web3://`](https://eips.ethereum.org/EIPS/eip-4804) (ERC-4804). The user's client then verifies, using a light client, that the content it received is exactly the data stored on-chain. That on-chain deployment is controlled by the same keys as the dapp's contracts, so the frontend inherits the trust root users already rely on.
+Serve the frontend from on-chain storage, addressable via [`web3://`](https://eips.ethereum.org/EIPS/eip-4804) (ERC-4804). On-chain, the frontend is controlled by the same keys as the dapp's contracts, so it inherits a trust root users already rely on. The user's client then verifies, using a light client, that the content it received is exactly that on-chain data.
 
 Content is still fetched through a gateway today, since browsers can't read on-chain data natively. The point is that the gateway no longer has to be trusted. Verification happens locally, so a compromised gateway is detectable.
 
