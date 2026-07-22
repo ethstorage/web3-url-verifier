@@ -51,7 +51,7 @@ Three stages from here, each making verification easier to reach for a normal us
     - The main open question is whether Chrome's extension model lets us intercept the data returned for every request a page makes. A single site pulls many html/css/js resources, and each one has to be verified.
     - If that isn't allowed, the fallback is to have the extension separately fetch and verify all the data for the current URL. This is weaker, since it verifies a second copy rather than the exact bytes the user's browser received.
     - There may be further constraints we only find once we build, which is exactly why we want to do this early.
-- **Resolve the Colibri licensing question.** The concern raised earlier is that integrating Colibri may require wallets to sign a separate license agreement. We build on Colibri, so this matters to us directly. We're happy to approach corpus-core to understand what agreement they require, and whether the terms can be relaxed for wallet integrators. We'd also gladly coordinate with whoever on your side is already in touch with them.
+- **Resolve the Colibri licensing question.** The concern raised earlier is that integrating Colibri may require wallets to sign a separate [license agreement](https://github.com/corpus-core/colibri-stateless/blob/dev/README.md). We build on Colibri, so this matters to us directly. We're happy to approach corpus-core to understand what agreement they require, and whether the terms can be relaxed for wallet integrators. We'd also gladly coordinate with whoever on your side is already in touch with them.
 
 With this in place, a wallet's only job is to integrate the SDK, following the reference extension, and show the verification result to the user.
 
