@@ -21,6 +21,8 @@ Built on [Colibri](https://github.com/corpus-core/colibri-stateless), corpus-cor
 | Ethereum-native (uploaded via calldata, stored in contract code, on L1 or an L2) | [vitalikblog.eth.1.w3link.io](https://vitalikblog.eth.1.w3link.io/) (Arbitrum Nova) |
 | EthStorage + L1 | [eth-store.eth.1.web3gateway.dev](https://eth-store.eth.1.web3gateway.dev/) |
 
+[EthStorage](https://ethstorage.io/) is a storage L2 that provides large, low-cost programmable storage secured by Ethereum L1. It suits full frontends, where storing everything in Ethereum-native storage would be expensive; a small commitment on L1 anchors the data so it stays verifiable through the same light-client path.
+
 **Out of scope:** content that isn't addressable on-chain. Frontends on IPFS or traditional hosting (Vercel, Cloudflare) can't be verified this way, which today is most of them. Our current focus is making it easy for teams to deploy to on-chain storage rather than verifying arbitrarily hosted content.
 
 ## Where we are
