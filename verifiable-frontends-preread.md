@@ -46,11 +46,11 @@ Three stages from here, each making verification easier to reach for a normal us
 **2. Does this sequence of next steps make sense?** To keep the burden on wallets minimal, we plan to do the following ourselves:
 
 - **Package the PoC as an SDK** so a wallet can add verification without reimplementing it.
-- **Build a reference extension** on top of the SDK, as a working example wallets can follow. Not an end product in itself, but a way to surface the unknowns early:
+- **Build a reference extension** on top of the SDK, as a working example wallets can follow. Not an end product in itself, but a way to surface the unknowns early. We've already run a first round of this as a capture-only PoC ([web3-verifier-extension](https://github.com/ethstorage/web3-verifier-extension)), to settle the biggest unknown before committing to the design.
 
-    - The main open question is whether Chrome's extension model lets us intercept the data returned for every request a page makes. A single site pulls many html/css/js resources, and each one has to be verified.
-    - If that isn't allowed, the fallback is to have the extension separately fetch and verify all the data for the current URL. This is weaker, since it verifies a second copy rather than the exact bytes the user's browser received.
-    - There may be further constraints we only find once we build, which is exactly why we want to do this early.
+    - The main open question was whether Chrome's extension model lets us see the data returned for every request a page makes. A single site pulls many html/css/js resources, and each one has to be verified. **The answer is yes**, using the Chrome DevTools Protocol (`chrome.debugger`) to capture every response body. The PoC covers this end to end; details are in the [repo](https://github.com/ethstorage/web3-verifier-extension).
+    - The cost is the `debugger` permission, which shows an "extension is debugging this browser" banner. It only appears on gateway URLs while capture is running, not during normal browsing, so it should be acceptable for a wallet.
+    - Next step is to wire the SDK's verification into this capture pipeline; there may be further constraints we only find at that point.
 - **Resolve the Colibri licensing question.** The concern raised earlier is that integrating Colibri may require wallets to sign a separate [license agreement](https://github.com/corpus-core/colibri-stateless/blob/dev/README.md). We build on Colibri, so this matters to us directly. We're happy to approach corpus-core to understand what agreement they require, and whether the terms can be relaxed for wallet integrators. We'd also gladly coordinate with whoever on your side is already in touch with them.
 
 With this in place, a wallet's only job is to integrate the SDK, following the reference extension, and show the verification result to the user.
