@@ -1,0 +1,505 @@
+<title>Verifiable Frontends — Call Slides</title>
+<style>
+  /* ---- tokens: light (bare :root defines the complete palette) ---- */
+  :root {
+    --ground:      #F3F4F1;
+    --surface:     #FBFBF9;
+    --ink:         #10161A;
+    --body:        #333F45;
+    --muted:       #6C7A80;
+    --rule:        #D4D8D2;
+    --rule-strong: #B6BDB7;
+    --accent:      #146E63;
+    --accent-soft: #DDEAE6;
+    --caution:     #8C5A16;
+    --caution-soft:#F0E6D5;
+
+    --f-sans: ui-sans-serif, -apple-system, BlinkMacSystemFont, "Helvetica Neue", "Segoe UI", Roboto, sans-serif;
+    --f-mono: ui-monospace, "SF Mono", SFMono-Regular, Menlo, "DejaVu Sans Mono", Consolas, monospace;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --ground:      #0C1114;
+      --surface:     #131A1E;
+      --ink:         #E8ECEA;
+      --body:        #C2CBC9;
+      --muted:       #8899A0;
+      --rule:        #232E33;
+      --rule-strong: #35444A;
+      --accent:      #57BFAE;
+      --accent-soft: #16302D;
+      --caution:     #D3A464;
+      --caution-soft:#2C2418;
+    }
+  }
+  :root[data-theme="dark"] {
+    --ground:      #0C1114;
+    --surface:     #131A1E;
+    --ink:         #E8ECEA;
+    --body:        #C2CBC9;
+    --muted:       #8899A0;
+    --rule:        #232E33;
+    --rule-strong: #35444A;
+    --accent:      #57BFAE;
+    --accent-soft: #16302D;
+    --caution:     #D3A464;
+    --caution-soft:#2C2418;
+  }
+
+  * { box-sizing: border-box; }
+
+  body {
+    background: var(--ground);
+    color: var(--body);
+    font-family: var(--f-sans);
+    margin: 0;
+    min-height: 100vh;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  .deck {
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: clamp(12px, 2.2vw, 28px);
+    gap: clamp(10px, 1.4vw, 18px);
+  }
+
+  .stage {
+    width: min(1180px, 100%);
+    aspect-ratio: 16 / 9;
+    min-height: min(560px, 76vh);
+    background: var(--surface);
+    border: 1px solid var(--rule);
+    position: relative;
+    display: flex;
+    overflow: hidden;
+  }
+  @media (max-width: 780px) {
+    .stage { aspect-ratio: auto; min-height: 78vh; }
+  }
+
+  /* ---- slide frame ---- */
+  .slide { display: none; width: 100%; }
+  .slide.is-active {
+    display: grid;
+    grid-template-rows: auto 1fr;
+    width: 100%;
+    padding: clamp(22px, 3.4vw, 48px) clamp(22px, 4vw, 60px) clamp(30px, 3.6vw, 52px);
+    gap: clamp(18px, 2.6vw, 34px);
+  }
+  @media (prefers-reduced-motion: no-preference) {
+    .slide.is-active > * { animation: rise .32s cubic-bezier(.2,.7,.3,1) both; }
+    .slide.is-active > *:nth-child(2) { animation-delay: .05s; }
+  }
+  @keyframes rise { from { opacity: 0; transform: translateY(7px); } to { opacity: 1; transform: none; } }
+
+  .chrome {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 16px;
+    padding-bottom: clamp(10px, 1.2vw, 16px);
+    border-bottom: 1px solid var(--rule);
+  }
+  .eyebrow {
+    font-family: var(--f-mono);
+    font-size: clamp(10px, 1.05vw, 12px);
+    letter-spacing: .16em;
+    text-transform: uppercase;
+    color: var(--accent);
+    margin: 0;
+  }
+  .counter {
+    font-family: var(--f-mono);
+    font-size: clamp(10px, 1.05vw, 12px);
+    letter-spacing: .1em;
+    color: var(--muted);
+    font-variant-numeric: tabular-nums;
+  }
+
+  .stack {
+    display: flex;
+    flex-direction: column;
+    gap: clamp(16px, 2.2vw, 28px);
+    justify-content: center;
+    min-height: 0;
+    overflow-y: auto;
+  }
+
+  h1 {
+    font-size: clamp(34px, 5.6vw, 68px);
+    line-height: 1.02;
+    letter-spacing: -0.028em;
+    font-weight: 600;
+    color: var(--ink);
+    margin: 0;
+    text-wrap: balance;
+  }
+  h2 {
+    font-size: clamp(25px, 3.5vw, 42px);
+    line-height: 1.1;
+    letter-spacing: -0.022em;
+    font-weight: 600;
+    color: var(--ink);
+    margin: 0;
+    max-width: 22ch;
+    text-wrap: balance;
+  }
+  .lede {
+    font-size: clamp(15px, 1.65vw, 20px);
+    line-height: 1.5;
+    color: var(--body);
+    margin: 0;
+    max-width: 58ch;
+  }
+  .meta {
+    font-family: var(--f-mono);
+    font-size: clamp(11px, 1.15vw, 13px);
+    color: var(--muted);
+    letter-spacing: .04em;
+    margin: 0;
+  }
+
+  /* ---- point lists ---- */
+  ul.points { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: clamp(12px, 1.5vw, 18px); }
+  ul.points > li {
+    position: relative;
+    padding-left: clamp(30px, 3.1vw, 42px);
+    font-size: clamp(15px, 1.75vw, 21px);
+    line-height: 1.42;
+    color: var(--body);
+    max-width: 62ch;
+  }
+  ul.points > li::before {
+    content: "";
+    position: absolute;
+    left: 0;
+    top: .68em;
+    width: clamp(16px, 1.7vw, 22px);
+    height: 1px;
+    background: var(--rule-strong);
+  }
+  ul.points > li.mark-pass::before { background: var(--accent); height: 2px; }
+  ul.points > li.mark-open::before { background: var(--caution); height: 2px; }
+  ul.points b { color: var(--ink); font-weight: 600; }
+  ul.points i { font-style: italic; color: var(--ink); }
+  .egs {
+    display: block;
+    font-family: var(--f-mono);
+    font-size: clamp(11px, 1.2vw, 14px);
+    color: var(--muted);
+    letter-spacing: .02em;
+    margin-top: .5em;
+  }
+  .qual { color: var(--muted); font-weight: 400; }
+
+  a {
+    color: inherit;
+    text-decoration: underline;
+    text-decoration-color: var(--accent);
+    text-decoration-thickness: 1px;
+    text-underline-offset: .2em;
+  }
+  a:hover { color: var(--accent); }
+  a:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; border-radius: 1px; }
+  .egs a, .meta a { color: var(--accent); }
+
+  ol.steps { list-style: none; margin: 0; padding: 0; counter-reset: s; display: flex; flex-direction: column; gap: clamp(14px, 1.8vw, 22px); }
+  ol.steps > li {
+    counter-increment: s;
+    position: relative;
+    padding-left: clamp(34px, 3.4vw, 46px);
+    font-size: clamp(17px, 2.1vw, 26px);
+    line-height: 1.32;
+    color: var(--ink);
+    letter-spacing: -0.01em;
+    max-width: 56ch;
+  }
+  ol.steps > li::before {
+    content: counter(s, decimal-leading-zero);
+    position: absolute;
+    left: 0;
+    top: .42em;
+    font-family: var(--f-mono);
+    font-size: clamp(11px, 1.15vw, 14px);
+    color: var(--accent);
+    letter-spacing: .08em;
+    font-variant-numeric: tabular-nums;
+  }
+  ol.steps small { display: block; font-size: clamp(13px, 1.4vw, 16px); color: var(--muted); margin-top: .35em; letter-spacing: 0; font-family: var(--f-sans); }
+
+  code, .mono { font-family: var(--f-mono); font-size: .9em; letter-spacing: -0.01em; }
+  code { color: var(--ink); background: var(--accent-soft); padding: .1em .34em; border-radius: 2px; }
+
+  .tag {
+    display: inline-block;
+    font-family: var(--f-mono);
+    font-size: clamp(10px, 1vw, 12px);
+    text-transform: uppercase;
+    letter-spacing: .12em;
+    padding: .32em .6em;
+    border: 1px solid currentColor;
+    margin-right: .5em;
+  }
+  .tag-pass { color: var(--accent); }
+  .tag-open { color: var(--caution); }
+
+  /* ---- tables ---- */
+  .tablewrap { overflow-x: auto; }
+  table { border-collapse: collapse; width: 100%; font-size: clamp(13px, 1.42vw, 17px); }
+  th, td { text-align: left; padding: clamp(8px, 1.1vw, 14px) clamp(10px, 1.3vw, 18px); vertical-align: top; line-height: 1.35; border-bottom: 1px solid var(--rule); }
+  thead th {
+    font-family: var(--f-mono);
+    font-size: clamp(10px, 1.05vw, 12px);
+    text-transform: uppercase;
+    letter-spacing: .12em;
+    color: var(--muted);
+    font-weight: 400;
+    border-bottom: 1px solid var(--rule-strong);
+    white-space: nowrap;
+  }
+  tbody th { font-weight: 400; color: var(--muted); white-space: nowrap; }
+  td.ours { color: var(--ink); }
+  tbody tr:last-child th, tbody tr:last-child td { border-bottom: none; }
+
+  /* ---- rail ---- */
+  .rail {
+    width: min(1180px, 100%);
+    display: flex;
+    align-items: center;
+    gap: clamp(8px, 1vw, 14px);
+  }
+  .segments { display: flex; gap: 4px; flex: 1; }
+  .segments span { height: 2px; flex: 1; background: var(--rule); transition: background .2s ease; }
+  .segments span.done { background: var(--rule-strong); }
+  .segments span.now { background: var(--accent); }
+  @media (prefers-reduced-motion: reduce) { .segments span { transition: none; } }
+
+  .nav { display: flex; gap: 6px; }
+  .nav button {
+    font-family: var(--f-mono);
+    font-size: 12px;
+    letter-spacing: .08em;
+    color: var(--muted);
+    background: transparent;
+    border: 1px solid var(--rule);
+    padding: 5px 11px;
+    cursor: pointer;
+    line-height: 1.4;
+  }
+  .nav button:hover { color: var(--ink); border-color: var(--rule-strong); }
+  .nav button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+  .hint { font-family: var(--f-mono); font-size: 11px; color: var(--muted); letter-spacing: .06em; }
+  @media (max-width: 640px) { .hint { display: none; } }
+
+  /* ---- print: one slide per landscape page ---- */
+  @page { size: 13.333in 7.5in; margin: 0; }
+  @media print {
+    :root, :root[data-theme="dark"] {
+      --ground: #FFFFFF; --surface: #FFFFFF; --ink: #10161A; --body: #333F45;
+      --muted: #6C7A80; --rule: #D4D8D2; --rule-strong: #A9B1AB;
+      --accent: #146E63; --accent-soft: #E4EEEB; --caution: #8C5A16; --caution-soft: #F0E6D5;
+    }
+    * { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+    body { background: #FFFFFF; }
+    .deck { display: block; padding: 0; min-height: 0; gap: 0; }
+    .stage {
+      display: block; width: 100%; aspect-ratio: auto; min-height: 0;
+      border: none; background: #FFFFFF; overflow: visible;
+    }
+    .slide, .slide.is-active {
+      display: grid !important;
+      grid-template-rows: auto 1fr;
+      width: 13.333in; height: 7.5in;
+      padding: 0.6in 0.85in 0.65in;
+      gap: 0.34in;
+      break-after: page; page-break-after: always;
+      animation: none !important;
+    }
+    .slide:last-child, .slide.is-active:last-child { break-after: auto; page-break-after: auto; }
+    .slide > *, .slide.is-active > * { animation: none !important; opacity: 1 !important; transform: none !important; }
+    .stack { overflow: visible; }
+    .rail { display: none; }
+  }
+</style>
+
+<div class="deck">
+  <div class="stage" id="stage">
+
+    <!-- 1 -->
+    <section class="slide is-active">
+      <div class="chrome"><p class="eyebrow">EthStorage · Verifiable Frontends</p><span class="counter"></span></div>
+      <div class="stack">
+        <h1>Verifiable Frontends</h1>
+        <p class="lede">Dapp frontends served from on-chain storage — and verified in the user's own client.</p>
+        <p class="meta">Fredrik &amp; the Access Layer cluster · August 2026</p>
+        <p class="meta"><a href="https://github.com/ethstorage/web3-url-verifier">github.com/ethstorage/web3-url-verifier</a>&nbsp;&nbsp;·&nbsp;&nbsp;<a href="https://github.com/ethstorage/web3-verifier-extension">web3-verifier-extension</a></p>
+      </div>
+    </section>
+
+    <!-- 2 -->
+    <section class="slide">
+      <div class="chrome"><p class="eyebrow">EthStorage · Verifiable Frontends</p><span class="counter"></span></div>
+      <div class="stack">
+        <h2>Agenda</h2>
+        <ol class="steps">
+          <li>Our approach — and what already runs</li>
+          <li>WEBCAT, side by side</li>
+          <li>Where we could take part</li>
+        </ol>
+      </div>
+    </section>
+
+    <!-- 3 -->
+    <section class="slide">
+      <div class="chrome"><p class="eyebrow">EthStorage · Verifiable Frontends</p><span class="counter"></span></div>
+      <div class="stack">
+        <h2>The problem</h2>
+        <ul class="points">
+          <li>Trust stops at the contracts — the frontend is just a hosted file</li>
+          <li>Compromise it and funds drain, <b>however sound the contracts are</b></li>
+          <li>The user has no way to tell</li>
+        </ul>
+      </div>
+    </section>
+
+    <!-- 4 -->
+    <section class="slide">
+      <div class="chrome"><p class="eyebrow">EthStorage · Verifiable Frontends</p><span class="counter"></span></div>
+      <div class="stack">
+        <h2>The idea</h2>
+        <ul class="points">
+          <li>Put the frontend on-chain, addressed by <code>web3://</code> — <a href="https://eips.ethereum.org/EIPS/eip-4804">ERC-4804</a></li>
+          <li>Same keys as the contracts → <b>trust root already in place</b></li>
+          <li>Light client checks the bytes against chain state</li>
+          <li class="mark-pass">The gateway stays in the path, but drops out of the trust model</li>
+        </ul>
+      </div>
+    </section>
+
+    <!-- 5 -->
+    <section class="slide">
+      <div class="chrome"><p class="eyebrow">EthStorage · Verifiable Frontends</p><span class="counter"></span></div>
+      <div class="stack">
+        <h2>It works today</h2>
+        <ul class="points">
+          <li class="mark-pass"><b>End to end</b> — <a href="https://github.com/ethstorage/web3-url-verifier">our CLI</a> fetches, <a href="https://github.com/corpus-core/colibri-stateless">Colibri</a> verifies, result reported</li>
+          <li>Two storage models, one verification path
+            <span class="egs">Ethereum-native · <a href="https://vitalikblog.eth.1.w3link.io/">vitalikblog.eth</a>&nbsp;&nbsp;/&nbsp;&nbsp;<a href="https://ethstorage.io/">EthStorage</a> + L1 · <a href="https://eth-store.eth.1.web3gateway.dev/">eth-store.eth</a></span></li>
+          <li><a href="https://github.com/ethstorage/web3-verifier-extension">Chrome extension</a> built — <b>every response body is reachable</b>, via CDP</li>
+          <li>Verification not yet wired into it. That's next.</li>
+        </ul>
+      </div>
+    </section>
+
+    <!-- 6 -->
+    <section class="slide">
+      <div class="chrome"><p class="eyebrow">EthStorage · Verifiable Frontends</p><span class="counter"></span></div>
+      <div class="stack">
+        <h2>On WEBCAT</h2>
+        <ul class="points">
+          <li><a href="https://blog.ethereum.org/2026/08/05/1ts-grant">1TS grant</a> announced 5 August — good news for the problem
+            <span class="egs"><a href="https://docs.webcat.tech/">docs.webcat.tech</a>&nbsp;&nbsp;·&nbsp;&nbsp;<a href="https://github.com/freedomofpress/webcat">github.com/freedomofpress/webcat</a></span></li>
+          <li>Their client <b>already does light-client verification</b></li>
+          <li>Same shape as ours — the difference is <b>how much has to be built underneath</b></li>
+        </ul>
+      </div>
+    </section>
+
+    <!-- 7 -->
+    <section class="slide">
+      <div class="chrome"><p class="eyebrow">EthStorage · Verifiable Frontends</p><span class="counter"></span></div>
+      <div class="stack">
+        <h2>On WEBCAT <span class="qual">— side by side</span></h2>
+        <div class="tablewrap">
+          <table>
+            <thead><tr><th></th><th>WEBCAT</th><th>Ours</th></tr></thead>
+            <tbody>
+              <tr><th>The registry behind the name</th><td>A purpose-built permissioned chain, updated by oracles that fetch <code>enrollment.json</code> over DNS/HTTPS</td><td class="ours">ENS — already a registry on Ethereum, nothing to build</td></tr>
+              <tr><th>Who may publish</th><td>Signers + threshold in <code>enrollment.json</code></td><td class="ours">The content contract's own access control — its owner / multisig</td></tr>
+              <tr><th>How the client checks it</th><td>Light client on that chain</td><td class="ours">Light client on Ethereum (Colibri)</td></tr>
+              <tr><th>Where the content lives</th><td>The site's own server</td><td class="ours">On-chain — Ethereum-native or EthStorage</td></tr>
+              <tr><th>What it protects</th><td>Integrity</td><td class="ours">Integrity, plus availability</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <!-- 8 -->
+    <section class="slide">
+      <div class="chrome"><p class="eyebrow">EthStorage · Verifiable Frontends</p><span class="counter"></span></div>
+      <div class="stack">
+        <h2>On WEBCAT <span class="qual">— a specialization</span></h2>
+        <ul class="points">
+          <li>A DNS name forces the registry. Off-chain content forces the manifest.</li>
+          <li class="mark-pass">ENS points at the contract — <b>both layers collapse</b></li>
+          <li>Nothing to stand up, nothing to keep honest</li>
+          <li>And availability: one origin server, vs. anyone can serve it</li>
+        </ul>
+      </div>
+    </section>
+
+    <!-- 9 -->
+    <section class="slide">
+      <div class="chrome"><p class="eyebrow">EthStorage · Verifiable Frontends</p><span class="counter"></span></div>
+      <div class="stack">
+        <h2>What we'd like to discuss</h2>
+        <p class="lede"><b>If we want to take an active part in this — what would you suggest?</b></p>
+        <ol class="steps">
+          <li>The ERC<small>Don't hard-code a single registry. — Where should we plug in?</small></li>
+          <li>Colibri licensing<small>We can take it to <a href="https://github.com/corpus-core/colibri-stateless/blob/dev/README.md">corpus-core</a> ourselves. — Is anyone on your side already in touch?</small></li>
+          <li>Anything else you'd suggest<small>Work underway we should know about, people we should talk to — or somewhere you'd push us instead.</small></li>
+        </ol>
+      </div>
+    </section>
+
+  </div>
+
+  <div class="rail">
+    <div class="segments" id="segments" aria-hidden="true"></div>
+    <span class="hint">← → to move</span>
+    <div class="nav">
+      <button type="button" id="prev" aria-label="Previous slide">PREV</button>
+      <button type="button" id="next" aria-label="Next slide">NEXT</button>
+    </div>
+  </div>
+</div>
+
+<script>
+  const slides = Array.from(document.querySelectorAll('.slide'));
+  const segments = document.getElementById('segments');
+  let i = 0;
+
+  slides.forEach(() => segments.appendChild(document.createElement('span')));
+  const segs = Array.from(segments.children);
+
+  // every slide carries its own number, so the printed deck is complete
+  const total = String(slides.length).padStart(2, '0');
+  slides.forEach((s, k) => {
+    s.querySelector('.counter').textContent = String(k + 1).padStart(2, '0') + ' / ' + total;
+  });
+
+  function show(n) {
+    i = Math.max(0, Math.min(slides.length - 1, n));
+    slides.forEach((s, k) => s.classList.toggle('is-active', k === i));
+    segs.forEach((s, k) => {
+      s.classList.toggle('done', k < i);
+      s.classList.toggle('now', k === i);
+    });
+  }
+
+  document.getElementById('next').addEventListener('click', () => show(i + 1));
+  document.getElementById('prev').addEventListener('click', () => show(i - 1));
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'ArrowRight' || e.key === 'PageDown' || e.key === ' ') { show(i + 1); e.preventDefault(); }
+    if (e.key === 'ArrowLeft' || e.key === 'PageUp') { show(i - 1); e.preventDefault(); }
+    if (e.key === 'Home') { show(0); }
+    if (e.key === 'End') { show(slides.length - 1); }
+  });
+
+  show(0);
+</script>

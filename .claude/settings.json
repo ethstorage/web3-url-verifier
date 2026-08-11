@@ -1,0 +1,9 @@
+{
+  "permissions": {
+    "allow": [
+      "WebFetch(domain:blog.ethereum.org)",
+      "Bash('/Applications/Google Chrome.app/Contents/MacOS/Google Chrome' --headless --disable-gpu --no-pdf-header-footer --print-to-pdf=/private/tmp/claude-501/-Users-zhuqiang-web3-url-verifier/964f2b82-6e67-4dc1-9e0e-ca67c1ff6b7a/scratchpad/verifiable-frontends-slides.pdf file:///private/tmp/claude-501/-Users-zhuqiang-web3-url-verifier/964f2b82-6e67-4dc1-9e0e-ca67c1ff6b7a/scratchpad/verifiable-frontends-slides.html)",
+      "Bash(python3 -)"
+    ]
+  }
+}
